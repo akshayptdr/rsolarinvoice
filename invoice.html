@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tax Invoice - INV-000390</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #e8e8e8;
+      padding: 30px;
+      font-size: 12px;
+      color: #000;
+    }
+
+    .page {
+      background: #fff;
+      width: 900px;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+    }
+
+    /* ── TOP: company + TAX INVOICE ── */
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 20px 24px 16px 24px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .company-block p {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #000;
+    }
+
+    .company-block p.company-name {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .tax-invoice-label {
+      font-size: 36px;
+      font-weight: bold;
+      color: #000;
+      letter-spacing: 1px;
+      text-align: right;
+    }
+
+    /* ── META: invoice number, date, terms etc ── */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .meta-table td {
+      padding: 5px 24px;
+      font-size: 12px;
+      vertical-align: top;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .meta-table td.label {
+      font-weight: bold;
+      width: 130px;
+      color: #000;
+    }
+
+    .meta-table .meta-row-right {
+      text-align: right;
+    }
+
+    .meta-outer {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .meta-left {
+      flex: 1;
+      border-right: 1px solid #ccc;
+    }
+
+    .meta-right {
+      flex: 1;
+    }
+
+    .meta-pair {
+      display: flex;
+      padding: 4px 24px;
+      font-size: 12px;
+    }
+
+    .meta-pair .k {
+      font-weight: bold;
+      min-width: 120px;
+    }
+
+    .meta-pair .v {
+      color: #000;
+    }
+
+    /* ── BILL TO / SHIP TO ── */
+    .address-row {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .address-cell {
+      flex: 1;
+      padding: 10px 24px;
+    }
+
+    .address-cell:first-child {
+      border-right: 1px solid #ccc;
+    }
+
+    .address-cell .addr-label {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .address-cell .customer-name {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .address-cell p {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    /* ── ITEMS TABLE ── */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .items-table th {
+      background: #f2f2f2;
+      border: 1px solid #ccc;
+      padding: 7px 8px;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .items-table th.center { text-align: center; }
+    .items-table th.right { text-align: right; }
+
+    .items-table td {
+      border: 1px solid #ccc;
+      padding: 8px 8px;
+      font-size: 12px;
+      vertical-align: top;
+    }
+
+    .items-table td.center { text-align: center; }
+    .items-table td.right { text-align: right; }
+
+    .items-table .item-name {
+      font-weight: bold;
+    }
+
+    /* colspan header rows for CGST / SGST */
+    .items-table th.sub-header {
+      background: #f2f2f2;
+      font-size: 11px;
+      font-weight: normal;
+      text-align: center;
+    }
+
+    /* ── BOTTOM: words + totals ── */
+    .bottom-row {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    .words-block {
+      flex: 1;
+      padding: 14px 24px;
+      border-right: 1px solid #ccc;
+    }
+
+    .words-block .words-label {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .words-block .words-text {
+      font-weight: bold;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .words-block .notes-label {
+      font-weight: bold;
+      margin-top: 16px;
+      margin-bottom: 2px;
+    }
+
+    .words-block .thanks {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #000;
+    }
+
+    .totals-block {
+      width: 320px;
+      padding: 10px 20px;
+    }
+
+    .totals-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 12px;
+      border-bottom: 1px dotted #ddd;
+    }
+
+    .totals-line.no-border {
+      border-bottom: none;
+    }
+
+    .totals-line.bold {
+      font-weight: bold;
+    }
+
+    .totals-line.total-final {
+      font-weight: bold;
+      font-size: 13px;
+      border-top: 2px solid #000;
+      border-bottom: 2px solid #000;
+      padding: 6px 0;
+      margin-top: 4px;
+    }
+
+    .totals-line.credits {
+      color: #c00;
+    }
+
+    .totals-line.balance {
+      font-weight: bold;
+      font-size: 13px;
+      border-bottom: none;
+      padding-top: 6px;
+    }
+
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { border: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TOP -->
+  <div class="top-row">
+    <div class="company-block">
+      <p class="company-name">ATVIAN R-SOLAR ENERGY PRIVATE LIMITED</p>
+      <p>Anjad Naka</p>
+      <p>Barwani Madhya Pradesh 451551 India</p>
+      <p>GSTIN 23ABBCA7719B1Z5&nbsp;&nbsp;9407217000</p>
+      <p>support@myrsolar.com</p>
+    </div>
+    <div class="tax-invoice-label">TAX INVOICE</div>
+  </div>
+
+  <!-- META -->
+  <div class="meta-outer">
+    <div class="meta-left">
+      <div class="meta-pair"><span class="k">#</span><span class="v">INV-000390</span></div>
+      <div class="meta-pair"><span class="k">Invoice Date</span><span class="v">12-Nov-2025</span></div>
+      <div class="meta-pair"><span class="k">Terms</span><span class="v">Due on Receipt</span></div>
+      <div class="meta-pair"><span class="k">Due Date</span><span class="v">12-Nov-2025</span></div>
+    </div>
+    <div class="meta-right">
+      <div class="meta-pair"><span class="k">Place Of Supply</span><span class="v">: Madhya Pradesh (23)</span></div>
+    </div>
+  </div>
+
+  <!-- BILL TO / SHIP TO -->
+  <div class="address-row">
+    <div class="address-cell">
+      <div class="addr-label">Bill To</div>
+      <div class="customer-name">Jivanbai Talware - N3746052799</div>
+    </div>
+    <div class="address-cell">
+      <div class="addr-label">Ship To</div>
+      <p>BAJRANG NAGAR, JETAPUR, KHARGONE</p>
+      <p>Madhya Pradesh</p>
+      <p>451001 India</p>
+    </div>
+  </div>
+
+  <!-- ITEMS TABLE -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th rowspan="2" style="width:28px;">#</th>
+        <th rowspan="2">Item &amp; Description</th>
+        <th rowspan="2" class="center" style="width:70px;">HSN<br>/SAC</th>
+        <th rowspan="2" class="center" style="width:40px;">Qty</th>
+        <th rowspan="2" class="right" style="width:80px;">Rate</th>
+        <th rowspan="2" class="center" style="width:60px;">Discount</th>
+        <th colspan="2" class="center">CGST</th>
+        <th colspan="2" class="center">SGST</th>
+        <th rowspan="2" class="right" style="width:80px;">Amount</th>
+      </tr>
+      <tr>
+        <th class="sub-header center" style="width:36px;">%</th>
+        <th class="sub-header right" style="width:60px;">Amt</th>
+        <th class="sub-header center" style="width:36px;">%</th>
+        <th class="sub-header right" style="width:60px;">Amt</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center">1</td>
+        <td>
+          <div class="item-name">Solar Rooftop Power Plant<br>(Kit)</div>
+        </td>
+        <td class="center">85414300</td>
+        <td class="center">1.00</td>
+        <td class="right">141481.33</td>
+        <td class="center">0.00</td>
+        <td class="center">2.5%</td>
+        <td class="right">3,537.03</td>
+        <td class="center">2.5%</td>
+        <td class="right">3,537.03</td>
+        <td class="right">141,481.33</td>
+      </tr>
+      <tr>
+        <td class="center">2</td>
+        <td>
+          <div class="item-name">Installation &amp;<br>Commissioning Services</div>
+        </td>
+        <td class="center">99540000</td>
+        <td class="center">1.00</td>
+        <td class="right">53954.75</td>
+        <td class="center">0.00</td>
+        <td class="center">9%</td>
+        <td class="right">4,855.93</td>
+        <td class="center">9%</td>
+        <td class="right">4,855.93</td>
+        <td class="right">53,954.75</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- BOTTOM: WORDS + TOTALS -->
+  <div class="bottom-row">
+    <div class="words-block">
+      <div class="words-label">Total In Words</div>
+      <div class="words-text">
+        Rupees Two Lakh Twelve Thousand Two Hundred Twenty One and One<br>Hundred Paise Only
+      </div>
+      <div class="notes-label">Notes</div>
+      <div class="thanks">Thanks for your business.</div>
+
+      <!-- SEAL placed bottom-right of the notes block, matching PDF -->
+      <div style="display:flex;flex-direction:column;align-items:center;margin-top:20px;float:right;">
+        <img src="seal.jpg" alt="Company Seal" style="width:110px;height:110px;object-fit:contain;"/>
+        <span style="font-size:11px;color:#000;margin-top:4px;">Authorised Signature</span>
+      </div>
+    </div>
+
+    <div class="totals-block">
+      <div class="totals-line bold">
+        <span>Sub Total Total</span>
+        <span>195,436.08</span>
+      </div>
+      <div class="totals-line">
+        <span>Taxable Amount</span>
+        <span>195,436.08</span>
+      </div>
+      <div class="totals-line">
+        <span>CGST2.5 (2.5%)</span>
+        <span>3,537.03</span>
+      </div>
+      <div class="totals-line">
+        <span>SGST2.5 (2.5%)</span>
+        <span>3,537.03</span>
+      </div>
+      <div class="totals-line">
+        <span>CGST9 (9%)</span>
+        <span>4855.927119</span>
+      </div>
+      <div class="totals-line">
+        <span>SGST9 (9%)</span>
+        <span>4855.927119</span>
+      </div>
+      <div class="totals-line">
+        <span>Rounding</span>
+        <span>0.00</span>
+      </div>
+      <div class="totals-line total-final">
+        <span>Total</span>
+        <span>₹212,222.00</span>
+      </div>
+      <div class="totals-line credits">
+        <span>Credits Applied</span>
+        <span>₹212,222.00</span>
+      </div>
+      <div class="totals-line balance">
+        <span>Balance Due</span>
+        <span>₹0.00</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
