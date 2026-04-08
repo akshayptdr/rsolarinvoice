@@ -6,6 +6,7 @@
 <title>Invoice Generator - Atvian R-Solar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;background:#f0f4f8;color:#111;}
@@ -32,6 +33,9 @@ table.list-table{width:100%;border-collapse:collapse;background:#fff;border-radi
 .list-table td.amount{text-align:right;font-weight:600;}
 .list-table td.due-zero{color:#2d6a4f;font-weight:600;text-align:right;}
 .list-table td.due-nonzero{color:#c0392b;font-weight:600;text-align:right;}
+.src-tag{padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold; text-transform:uppercase;}
+.src-atvain{background:#d8f3dc; color:#1b4332;}
+.src-fk{background:#e0e1dd; color:#0d1b2a;}
 .list-table input[type=checkbox]{width:15px;height:15px;cursor:pointer;}
 .btn-view{background:#2d6a4f;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px;}
 .btn-view:hover{background:#1b4332;}
@@ -125,6 +129,11 @@ table.list-table{width:100%;border-collapse:collapse;background:#fff;border-radi
   </div>
   <div class="search-bar">
     <input type="text" id="searchInput" placeholder="Search by name, invoice no, mobile..." oninput="filterList()"/>
+    <select onchange="filterList()" id="companyFilter">
+      <option value="">All Companies</option>
+      <option value="Atvain">Atvian R-Solar</option>
+      <option value="FK">Farmkart</option>
+    </select>
     <select onchange="filterList()" id="amtFilter">
       <option value="">All Amounts</option>
       <option value="210000">₹2,10,000</option>
@@ -132,6 +141,7 @@ table.list-table{width:100%;border-collapse:collapse;background:#fff;border-radi
       <option value="216666">₹2,16,666</option>
     </select>
   </div>
+
   <div class="bulk-bar" id="bulkBar">
     <span class="sel-count" id="selCount">0 selected</span>
     <button class="btn-bulk-pdf" onclick="downloadSelectedPDFs()">⬇ Download Selected as PDF</button>
@@ -145,6 +155,7 @@ table.list-table{width:100%;border-collapse:collapse;background:#fff;border-radi
         <th>#</th>
         <th>Invoice No</th>
         <th>Date</th>
+        <th>Company</th>
         <th>Customer Name</th>
         <th>Mobile</th>
         <th>Total</th>
@@ -168,148 +179,87 @@ table.list-table{width:100%;border-collapse:collapse;background:#fff;border-radi
 </div>
 
 <script>
-// ── CUSTOMER DATA ──
-const customers = [
-  {id:"195543",date:"28-Feb-2025",name:"Basanti Ji Patel",cid:"9425416274",mobile:"9425416274",addr:"",total:210000,due:0},
-  {id:"196654",date:"28-Feb-2025",name:"Lata bai Gole",cid:"9981144075",mobile:"9981144075",addr:"",total:210000,due:0},
-  {id:"196659",date:"28-Feb-2025",name:"Sandeep Ramdas Sharma",cid:"9752423405",mobile:"9752423405",addr:"",total:210000,due:0},
-  {id:"199595",date:"28-Feb-2025",name:"Praveen Bhalerao",cid:"9893062033",mobile:"9893062033",addr:"",total:210000,due:0},
-  {id:"199720",date:"28-Feb-2025",name:"Sachin Patidar",cid:"9424867390",mobile:"9424867390",addr:"",total:210000,due:0},
-  {id:"199861",date:"28-Feb-2025",name:"Sumitra Patidar",cid:"9009593303",mobile:"9009593303",addr:"",total:210000,due:0},
-  {id:"199863",date:"28-Feb-2025",name:"Kaushal Patidar",cid:"9754200350",mobile:"9754200350",addr:"",total:210000,due:0},
-  {id:"199864",date:"28-Feb-2025",name:"Vikas Barfa",cid:"9584686262",mobile:"9584686262",addr:"",total:210000,due:0},
-  {id:"199865",date:"28-Feb-2025",name:"Pradeep Patidar",cid:"9826460411",mobile:"9826460411",addr:"",total:210000,due:0},
-  {id:"199866",date:"28-Feb-2025",name:"Archana Rathore",cid:"9926481124",mobile:"9926481124",addr:"",total:210000,due:0},
-  {id:"199867",date:"28-Feb-2025",name:"Rajni Pathod",cid:"9669766728",mobile:"9669766728",addr:"",total:210000,due:0},
-  {id:"199868",date:"28-Feb-2025",name:"Gangaram Saste",cid:"8435471698",mobile:"8435471698",addr:"",total:210000,due:0},
-  {id:"199869",date:"28-Feb-2025",name:"Gendalal Patidar",cid:"9424031963",mobile:"9424031963",addr:"",total:210000,due:0},
-  {id:"199871",date:"28-Feb-2025",name:"Hindu Mandloi",cid:"9630853471",mobile:"9630853471",addr:"",total:210000,due:0},
-  {id:"201385",date:"28-Feb-2025",name:"Vijay Panwar",cid:"9685843148",mobile:"9685843148",addr:"",total:210000,due:0},
-  {id:"201388",date:"28-Feb-2025",name:"Pinki Chouhan",cid:"7400671441",mobile:"7400671441",addr:"",total:210000,due:0},
-  {id:"201882",date:"18-Mar-2025",name:"Manjula Chouhan",cid:"9893844875",mobile:"9893844875",addr:"",total:210000,due:0},
-  {id:"202267",date:"8-Apr-2025",name:"Garima Patidar",cid:"9893844901",mobile:"9893844901",addr:"",total:210000,due:0},
-  {id:"202493",date:"24-Apr-2025",name:"Anita Bai Malviya",cid:"7354100503",mobile:"7354100503",addr:"",total:210000,due:0},
-  {id:"205954",date:"31-Jul-2025",name:"Kamlesh Dingrode",cid:"9981483147",mobile:"9981483147",addr:"",total:210000,due:0},
-  {id:"210088",date:"6-Jan-2026",name:"Jyoti Mehta Solanki",cid:"9575493952",mobile:"9575493952",addr:"",total:210000,due:0},
-  {id:"INV-000004",date:"28-Mar-2025",name:"Seema Gupta",cid:"N3315014411",mobile:"9425364797",addr:"NEMINATH NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000011",date:"28-Mar-2025",name:"Lalsingh Sapane",cid:"N3315012228",mobile:"9575012354",addr:"17/B KRISHNA STATE BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000013",date:"28-Mar-2025",name:"Santosh Sindhe",cid:"N3315002532",mobile:"9893399525",addr:"PANWADI CHAMAR MOHALAL, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000017",date:"28-Mar-2025",name:"Poonam Malviya",cid:"N3315031676",mobile:"7771888181",addr:"31 VIJAY NAGAR ANJAD ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000025",date:"16-Apr-2025",name:"Ritu Vijay Patidar",cid:"N3330019405",mobile:"9826966467",addr:"Piplaj, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000032",date:"22-Apr-2025",name:"Kapil Pathak",cid:"N3315033055",mobile:"9977620728",addr:"06 MA REWA RESIDENCY, WARD NO 18 BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000046",date:"22-Apr-2025",name:"Prabhakar Rao Niwadunge",cid:"N3315005167",mobile:"7693978118",addr:"SUKH VILAS COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:21000},
-  {id:"INV-000047",date:"22-Apr-2025",name:"Rahul Bhawasar",cid:"N3315003259",mobile:"9406609143",addr:"CHOUBA MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:4000},
-  {id:"INV-000056",date:"1-May-2025",name:"Ankit Purohit",cid:"N3315025564",mobile:"9926098303",addr:"SAKET RECIDENCY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000067",date:"1-May-2025",name:"Amrit Rathod",cid:"N3315006075",mobile:"9981569487",addr:"27/ABHINANDAN NAGAR COLONY, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000069",date:"1-May-2025",name:"Dinesh Kumar Patel",cid:"N3330018729",mobile:"9713708444",addr:"SAWARIYA DHAM COLONY, KARI, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000070",date:"1-May-2025",name:"Manohar Gehlot",cid:"N3315014634",mobile:"8602523510",addr:"MALI MOHALA, BAVANGAJA RODH, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000087",date:"3-May-2025",name:"Apeksha Purohit",cid:"N3315029260",mobile:"9977464433",addr:"A SAKET RESIDENCY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000095",date:"8-May-2025",name:"Sangeeta Bhandole",cid:"N3315004166",mobile:"8085392022",addr:"84/C KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000117",date:"19-May-2025",name:"Rajaram Jat",cid:"N3335004053",mobile:"9755788428",addr:"TALOON, Taloon Buzurg, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000135",date:"26-May-2025",name:"Ravi Nagar",cid:"N3315021461",mobile:"9425087830",addr:"35 SAINATH COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000140",date:"27-May-2025",name:"Manish Nagor",cid:"N3335008474",mobile:"9752081881",addr:"TALUN, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000141",date:"27-May-2025",name:"Bhagirath Goyal",cid:"N3330011138",mobile:"9993067607",addr:"SAI DHAM COLONY, BHILKHEDA PUNERWAS\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000155",date:"5-Jun-2025",name:"Roopsingh Mujalda",cid:"N3315004821",mobile:"9425090221",addr:"KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000156",date:"5-Jun-2025",name:"Gourav Nagor",cid:"N3335004212",mobile:"9977118594",addr:"TALOON, TALOON BUZURG, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000157",date:"5-Jun-2025",name:"Satiram Rawat",cid:"N3330005579",mobile:"9630504754",addr:"BHILKHEDA PUNERWAS, Bhilkheda, Barwani\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000159",date:"21-Jun-2025",name:"Rahul Vijay Patidar",cid:"N3330001712",mobile:"6264240952",addr:"Piplaj, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000166",date:"21-Jun-2025",name:"Imanwel William",cid:"N3315028270",mobile:"9522661166",addr:"WARD NO 18, 167 SAKET RESIDENCY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000176",date:"21-Jun-2025",name:"Alka Parikh",cid:"N3315000162",mobile:"9754490900",addr:"210 PURANI HOUSING BOARD, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000187",date:"1-Jul-2025",name:"Omprakash Sharma",cid:"N3315001057",mobile:"9425090730",addr:"62-A NEW MADHUBAN COLONY, NEAR 128429/D BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000190",date:"1-Jul-2025",name:"Avinash Gangle",cid:"N3315005055",mobile:"7898137209",addr:"GANGLE 32 SAWANT PURAM COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000191",date:"1-Jul-2025",name:"Karan Mukati",cid:"N3315018013",mobile:"9425982059",addr:"SIRVI MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000196",date:"1-Jul-2025",name:"Mamta Bai Solanki",cid:"N3315000585",mobile:"9993665586",addr:"41 NIKUNJDHAM COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000203",date:"7-Jul-2025",name:"Vinod Kushwah",cid:"N3315012201",mobile:"9893812447",addr:"DEVISINGH GARDAN ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000204",date:"7-Jul-2025",name:"Abdul Shahid Shaikh",cid:"N3315011553",mobile:"8085280555",addr:"CHADSHAH MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000211",date:"9-Jul-2025",name:"Dinesh Patidar",cid:"N3679010467",mobile:"7024568350",addr:"MANDVI, Dhar\nMadhya Pradesh\nIndia - 454335",total:210000,due:15000},
-  {id:"INV-000223",date:"16-Jul-2025",name:"Rahul Kachhave",cid:"N3315030064",mobile:"8269040017",addr:"SNEH NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:1000},
-  {id:"INV-000237",date:"26-Jul-2025",name:"Ratna Bhawsar",cid:"N3315028635",mobile:"9424533022",addr:"214 PURANI HOUSING BOARD COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000238",date:"26-Jul-2025",name:"Jagdish Mujalde",cid:"N3315004380",mobile:"9893851629",addr:"37/C KUNDAN NAGAR COLONY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000240",date:"26-Jul-2025",name:"Asafak Mansuri",cid:"N3315032995",mobile:"9669634175",addr:"NEMINATH NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000241",date:"26-Jul-2025",name:"Ravindra Chavan",cid:"N3330018494",mobile:"7509054864",addr:"SAJWANI, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000253",date:"6-Aug-2025",name:"Nitu Pandit",cid:"N3315031489",mobile:"8224947479",addr:"36 ROYAL TOWN COLONY KUNDAN NAGAR KE PASS BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000259",date:"31-Jul-2025",name:"Jaydeep Kushwah",cid:"N3315031779",mobile:"7879143240",addr:"VIJAY NAGAR COLONY BARWANI ANJAD ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:5999},
-  {id:"INV-000260",date:"4-Aug-2025",name:"Dharmendra Dhangar",cid:"N3315026421",mobile:"8462942615",addr:"BRAJ VIHAR COLONY, Barwani\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000261",date:"5-Aug-2025",name:"Sombai Dawar",cid:"N3315032339",mobile:"8120568688",addr:"SANSKRATIK NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000262",date:"6-Aug-2025",name:"Nikhil Namdev",cid:"N3315033386",mobile:"9630422293",addr:"44 SAIDHAM COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:3000},
-  {id:"INV-000267",date:"17-Aug-2025",name:"Sameer Mansuri",cid:"N3315015661",mobile:"9691630132",addr:"RAJGHAT ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000270",date:"19-Aug-2025",name:"Santosh Kumawat",cid:"N3335004009",mobile:"9575775521",addr:"TALOON, TALOON BUZURG, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000278",date:"24-Aug-2025",name:"Juber Sheikh",cid:"N3315011921",mobile:"9893398289",addr:"NEW DRP LINE KE PAS ME BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000279",date:"23-Aug-2025",name:"Anil Chouhan",cid:"N3315027838",mobile:"9893634077",addr:"NEMINATH COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000280",date:"24-Aug-2025",name:"Gopichand Bhandole",cid:"N3315031180",mobile:"9575928061",addr:"VIJAY NAGAR COLONY GRAM KARI BARWANI\nMadhya Pradesh\nIndia - 451556",total:216666,due:1000},
-  {id:"INV-000281",date:"23-Aug-2025",name:"Kiran Patidar",cid:"N3330009877",mobile:"9179753162",addr:"Piplaj, Barwani\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000287",date:"28-Aug-2025",name:"Rekha Gupta",cid:"N3315009870",mobile:"9893391320",addr:"115-B SATPUDA COLONY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000292",date:"2-Sep-2025",name:"Nisha Joshi",cid:"N3315015668",mobile:"7024483609",addr:"11 NEMINATH NAGAR, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000302",date:"10-Sep-2025",name:"Vikram Singh Chouhan",cid:"N3315004259",mobile:"9926488809",addr:"KUNDAN NAGAR COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000308",date:"15-Sep-2025",name:"Dinesh Verma",cid:"N3315018902",mobile:"9630132197",addr:"MEHTAR MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000313",date:"19-Sep-2025",name:"Girda Kharte",cid:"N3315027556",mobile:"9009815628",addr:"52-SAI TIRTHA NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000314",date:"17-Sep-2025",name:"Kamna Yadav",cid:"N3315026943",mobile:"9200326272",addr:"ANAND NAGAR, Barwani\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000315",date:"18-Sep-2025",name:"Vaibhav Bhawsar",cid:"N3315015265",mobile:"9993799209",addr:"MAHAVEER NAGAR JHAMARIYA GARDEN BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:6000},
-  {id:"INV-000329",date:"25-Sep-2025",name:"Neeraj Mandal",cid:"N3315026359",mobile:"9713914229",addr:"BRAJVIHAR COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000331",date:"25-Sep-2025",name:"Mahesh Alawe",cid:"N3315006324",mobile:"9752569225",addr:"MARUTI NAGRA BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:1999},
-  {id:"INV-000333",date:"26-Sep-2025",name:"Mukesh Baghel",cid:"N3315005457",mobile:"8827079181",addr:"47 KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:216666,due:0},
-  {id:"INV-000336",date:"29-Sep-2025",name:"Rahul Rathod",cid:"N3330008196",mobile:"9755317442",addr:"KUKRA PUNAR BASHAHAT, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000337",date:"29-Sep-2025",name:"Sushila Barman",cid:"N3315011754",mobile:"8959915779",addr:"26/SAI TIRTH NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000339",date:"3-Oct-2025",name:"Tushar Mukati",cid:"N3315017521",mobile:"7773867779",addr:"NEEMPURA RANIPURA NEAR 1043-D BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000341",date:"4-Oct-2025",name:"Bhagwan Singh Solanki",cid:"N3315012764",mobile:"9425090241",addr:"SATPUDA COLONY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:2000},
-  {id:"INV-000350",date:"8-Oct-2025",name:"Mohanlal Kumawat",cid:"N3315031769",mobile:"8308877471",addr:"VIJAY NAGAR COLONY ANJAD\nMadhya Pradesh\nIndia - 451551",total:212222,due:1999},
-  {id:"INV-000362",date:"18-Oct-2025",name:"Siyaram More",cid:"N3315005063",mobile:"9893500948",addr:"KUNDAN NAGAR COLONY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:1999},
-  {id:"INV-000365",date:"20-Oct-2025",name:"Ganga Bai Kushwah",cid:"N3315031459",mobile:"8889111370",addr:"03 KUSHWAH COLONY ASHAGRAM ROAD, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000372",date:"25-Oct-2025",name:"Ashish Mandloi",cid:"N3315025225",mobile:"9993755564",addr:"RUKMANI NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:6099},
-  {id:"INV-000373",date:"28-Oct-2025",name:"Naresh Gole",cid:"N3315012980",mobile:"9893763912",addr:"AMBEDKAR MARG, BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000377",date:"30-Oct-2025",name:"Ayushi Patidar",cid:"N3679004996",mobile:"7987969819",addr:"AJANDIKOT, SINGHANA, Dhar\nMadhya Pradesh\nIndia - 454446",total:212222,due:0},
-  {id:"INV-000380",date:"1-Nov-2025",name:"Mangilala Nema Barfa",cid:"N3330001850",mobile:"9009674618",addr:"Balkunwa, Barwani\nMadhya Pradesh\nIndia",total:212222,due:0},
-  {id:"INV-000386",date:"6-Nov-2025",name:"Dipika Bamniya",cid:"N3315032722",mobile:"9926301017",addr:"SAI TIRTH NAGAR COLONY BADWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000388",date:"11-Nov-2025",name:"Shankar Gehlot",cid:"N3315009341",mobile:"9993142873",addr:"SHIRVI ROAD, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000390",date:"12-Nov-2025",name:"Jivanbai Talware",cid:"N3746052799",mobile:"",addr:"BAJRANG NAGAR, JETAPUR, KHARGONE\nMadhya Pradesh\n451001 India",total:212222,due:0},
-  {id:"INV-000392",date:"12-Nov-2025",name:"Mohammad Salim Khatri",cid:"N3315001970",mobile:"7974134959",addr:"PALA BAZAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000396",date:"14-Nov-2025",name:"Vinita Yadav",cid:"N3315005818",mobile:"9165909435",addr:"48 Kundan Nagar, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000402",date:"17-Nov-2025",name:"Champalal Awase",cid:"N3340005057",mobile:"9754850365",addr:"BARUFATAK, Barwani\nMadhya Pradesh\nIndia - 451660",total:212222,due:0},
-  {id:"INV-000406",date:"23-Nov-2025",name:"Sunita Antarsingh Awasiya",cid:"N3330019013",mobile:"9993981933",addr:"BHILKHEDA PUNRWAS, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000407",date:"24-Nov-2025",name:"Maya Bulawat",cid:"N3315030284",mobile:"9644650437",addr:"572 NIKUNJDHAM SENGAW KE PAS BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000409",date:"25-Nov-2025",name:"Jitendra Shriwas",cid:"N3315015187",mobile:"7697633597",addr:"11 RAMKULLESHWAR COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000412",date:"26-Nov-2025",name:"Rupali Bhawsar",cid:"N3315026725",mobile:"8770769426",addr:"15/B KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000413",date:"26-Nov-2025",name:"Neha Kapil Bhawsar",cid:"N3315026721",mobile:"7566385435",addr:"15/B KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000414",date:"27-Nov-2025",name:"Mahendra Ahirwal",cid:"N3315025590",mobile:"7898338273",addr:"SAI DHAM COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000430",date:"3-Dec-2025",name:"Dipak Patidar",cid:"N3315033698",mobile:"7697638117",addr:"50 SIDDIVINAYAK COLONY ANJAD ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000433",date:"4-Dec-2025",name:"Ghanshyam Awasya",cid:"N3330008768",mobile:"9179832666",addr:"Bhilkheda, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000434",date:"4-Dec-2025",name:"Bharti Nigam",cid:"N3315014824",mobile:"9893373943",addr:"33 RAAMKULLESHWAR CALONY PATI ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000436",date:"5-Dec-2025",name:"Sardar Singh Mukati",cid:"N3315006007",mobile:"9893086168",addr:"MUKATI 29/C KUNDAN NAGAR, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:6000},
-  {id:"INV-000439",date:"5-Dec-2025",name:"Piyush William",cid:"N3315028271",mobile:"9522662266",addr:"SAKET RESIDENCY, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000442",date:"7-Dec-2025",name:"Relam Mujalda",cid:"N3315029510",mobile:"9098407796",addr:"PATI NAKA RAMKULLESHWAR COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000446",date:"9-Dec-2025",name:"Kamal Singh Nargave",cid:"N3315011706",mobile:"9575805020",addr:"22 BHAWANI NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000452",date:"15-Dec-2025",name:"Santosh Patidar",cid:"N3336014144",mobile:"7049797765",addr:"PUN BARDA ANJAD\nMadhya Pradesh\nIndia - 451556",total:212222,due:0},
-  {id:"INV-000454",date:"16-Dec-2025",name:"Farida Abbasi",cid:"N3315020714",mobile:"7987844415",addr:"NAVALPURA BARWANI\nMadhya Pradesh",total:212222,due:0},
-  {id:"INV-000456",date:"17-Dec-2025",name:"Navin Jat",cid:"N3335004065",mobile:"9424535856",addr:"TALOON ANJAD R-I Taloon Buzurg\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000457",date:"18-Dec-2025",name:"Mohammad Rafik",cid:"N3315011774",mobile:"7773073203",addr:"NEW PANWADI MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000460",date:"20-Dec-2025",name:"Bhupendra Rathore",cid:"N3315032318",mobile:"9425087597",addr:"23 RANIPURA BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000464",date:"23-Dec-2025",name:"Ghanshyam Gole",cid:"N3315025509",mobile:"9981220286",addr:"KUMHAAR MOHLLAA BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000465",date:"23-Dec-2025",name:"Rahul Mukati",cid:"N3315019062",mobile:"8827734923",addr:"SIRVI MOHALLA BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000467",date:"27-Dec-2025",name:"Yashoda Jaiswal",cid:"N3315014420",mobile:"9993737268",addr:"39 SHRIRAM KULLESHWAR COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000468",date:"29-Dec-2025",name:"Manohar Dhangar",cid:"N3330008518",mobile:"9752161241",addr:"Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000479",date:"7-Jan-2026",name:"Manjula Khanna",cid:"N3315026290",mobile:"9893476201",addr:"103/B SATPUDA COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000486",date:"23-Jan-2026",name:"Gokul Mali",cid:"N3315015249",mobile:"8827885834",addr:"BAWANGAJA ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:210000,due:0},
-  {id:"INV-000487",date:"23-Jan-2026",name:"Ravi Shankar Jaiswal",cid:"N3315017530",mobile:"9630718503",addr:"82/K Tulsidas Marg, G.no.01 Ward no.20, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000490",date:"24-Jan-2026",name:"PUSHPA DARASINGH BARDE",cid:"N3315026965",mobile:"9165880121",addr:"EKTA NAGAR, BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000491",date:"24-Jan-2026",name:"Antar Singh Solanki",cid:"N3315026826",mobile:"9993196819",addr:"BHAWANI NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000492",date:"24-Jan-2026",name:"Umesh Chouhan",cid:"N3315027656",mobile:"8120786677",addr:"AAKASH NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000494",date:"28-Jan-2026",name:"Rakesh Jogi",cid:"N3315030718",mobile:"7999689403",addr:"SHRI SATGURUDHAM COLONY BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000497",date:"31-Jan-2026",name:"Deepak Kumawat",cid:"N3335004142",mobile:"9009128309",addr:"TALOON Taloon Buzurg, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000498",date:"31-Jan-2026",name:"Laxman Alanse",cid:"N3315006416",mobile:"9993569054",addr:"KUNDAN NAGAR BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000506",date:"4-Feb-2026",name:"Mangilal Kanouje",cid:"N3315015588",mobile:"9993115851",addr:"BAWAN GAJA ROAD BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000513",date:"7-Feb-2026",name:"Jayantee Bai Awasya",cid:"N3330019390",mobile:"8458852468",addr:"SAI CITY COLONY BHILKHEDA, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000515",date:"9-Feb-2026",name:"Akhil Khan",cid:"N3315012916",mobile:"9993391197",addr:"001 POOJA STATE BARWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000517",date:"12-Feb-2026",name:"Neeta Stephen",cid:"N3340019060",mobile:"9165970969",addr:"PIPRI THIKRI\nMadhya Pradesh\nIndia - 451660",total:212222,due:0},
-  {id:"INV-000529",date:"20-Feb-2026",name:"Pooja Mahesh Dhangar",cid:"N3315020164",mobile:"8085904490",addr:"Makan N 52, Ward N01, Sardar Patel Marg, Nawalpura, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000531",date:"21-Feb-2026",name:"Hiralal Rathod",cid:"N3315015390",mobile:"9893527919",addr:"BASANT BIHAR COLONY, BADWANI\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000535",date:"23-Feb-2026",name:"Gaurav Balkrishna Songara",cid:"N3315007114",mobile:"9766433106",addr:"25/6 Ranipura, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000541",date:"25-Feb-2026",name:"Santosh Kumar Sawner",cid:"N3315033682",mobile:"9893470498",addr:"90, Shri Balaji Residency, Ward No 3, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000542",date:"26-Feb-2026",name:"Mukesh Alanse",cid:"N3315018174",mobile:"9893654351",addr:"Ward NO-24, Mahalaxmi Marg, Ranipura Mohalla, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000554",date:"1-Mar-2026",name:"Nripendra Nath Biswas",cid:"N3315014471",mobile:"8120699484",addr:"33, neminath nagar colony, jhamriya garden, ward no 22, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000555",date:"4-Mar-2026",name:"Saida Khan",cid:"N3315012432",mobile:"7987823498",addr:"Makan No. 86, Ward No. 14, Near Dashahra Maidan, Pooja State Colony, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000565",date:"11-Mar-2026",name:"Shishir Patidar",cid:"N3315003862",mobile:"9977070359",addr:"69, aashagram road, savant pura colony, barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-  {id:"INV-000566",date:"11-Mar-2026",name:"Mahesh Dhangar",cid:"N3315025252",mobile:"9399757561",addr:"Makan N 52, Ward N01, Sardar Patel Marg, Nawalpura, Barwani\nMadhya Pradesh\nIndia - 451551",total:212222,due:0},
-];
+// ── CONFIG ──
+const SHEETS = {
+  atvain: "https://docs.google.com/spreadsheets/d/1as6sDJtbbk-vlFZrnaf2VVBcm4wDCcejDOLPDgQIo34/export?format=csv&gid=1041265198",
+  fk: "https://docs.google.com/spreadsheets/d/1as6sDJtbbk-vlFZrnaf2VVBcm4wDCcejDOLPDgQIo34/export?format=csv&gid=0"
+};
+
+// ── CUSTOMER DATA (Will be populated from Google Sheet) ──
+let customers = [];
+
+// ── HELPER: PARSE CURRENCY ──
+function parseCurrency(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  // Remove currency symbols, commas and special chars, keep dots and digits
+  const cleaned = val.toString().replace(/[^\d.-]/g, '');
+  return parseFloat(cleaned) || 0;
+}
+
+// ── FETCH DATA FROM GOOGLE SHEET ──
+async function fetchSheetData() {
+  try {
+    const fetchTab = async (url, source) => {
+      const resp = await fetch(url);
+      const csv = await resp.text();
+      return new Promise(resolve => {
+        Papa.parse(csv, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const mapped = results.data.map(row => {
+              let name = row["Customer Name"] || "Unknown";
+              let cid = "";
+              let addr = row["Address"] || "";
+              
+              if (source === 'Atvain' && name !== "Unknown") {
+                const parts = name.split('\n');
+                const firstLine = parts[0]; // e.g. "Basanti Sharma - N3315001"
+                if (firstLine.includes(' - ')) {
+                  const segments = firstLine.split(' - ');
+                  name = segments[0].trim();
+                  cid = segments[1].trim();
+                }
+                if (parts.length > 1) {
+                  addr = parts.slice(1).join('\n').trim();
+                }
+              }
+
+              return {
+                id: row["Invoice#"] || "N/A",
+                date: row["Invoice Date"] || "N/A",
+                name: name,
+                cid: cid,
+                mobile: "", 
+                addr: addr,
+                total: parseCurrency(row["Total"]),
+                due: parseCurrency(row["Balance"]),
+                source: source
+              };
+            }).filter(c => c.name !== "Unknown");
+            resolve(mapped);
+
+          }
+        });
+      });
+    };
+
+    const [atvainData, fkData] = await Promise.all([
+      fetchTab(SHEETS.atvain, 'Atvain'),
+      fetchTab(SHEETS.fk, 'FK')
+    ]);
+
+    customers = [...atvainData, ...fkData];
+    initApp();
+    
+  } catch (err) {
+    console.error("Error fetching sheet data:", err);
+    alert("Failed to load data from Google Sheet. Please check the sharing settings.");
+  }
+}
+
+
 
 // ── TAX CALCULATION ──
 function calcTax(total){
@@ -357,10 +307,36 @@ function amountWords(total){
   return w;
 }
 
+// ── COMPANY BRANDING ──
+function getCompanyInfo(source) {
+  if (source === 'FK') {
+    return {
+      name: "FARMKART ONLINE SERVICES PRIVATE LIMITED",
+      gst: "23AADCF197R1Z7",
+      addr: "Anjad Road, Barwani, Madhya Pradesh 451551 India",
+      phone: "",
+      email: "support@farmkart.com"
+    };
+  }
+  return {
+    name: "ATVIAN R-SOLAR ENERGY PRIVATE LIMITED",
+    gst: "23ABBCA7719B1Z5",
+    addr: "Anjad Naka, Barwani Madhya Pradesh 451551 India",
+    phone: "9407217000",
+    email: "support@myrsolar.com"
+  };
+}
+
 // ── SELECTION ──
 let selected=new Set();
-let filtered=[...customers];
+let filtered=[];
 let currentIdx=null;
+
+function initApp() {
+  filtered = [...customers];
+  renderList();
+}
+
 
 function toggleSelectAll(cb){
   filtered.forEach(c=>{
@@ -401,11 +377,13 @@ function renderList(){
     const dueClass=c.due>0?'due-nonzero':'due-zero';
     const dueStr=c.due>0?fmtR(c.due):'₹0.00';
     const chk=selected.has(idx)?'checked':'';
+    const sourceClass = c.source === 'Atvain' ? 'src-atvain' : 'src-fk';
     tbody.innerHTML+=`<tr id="row-${idx}" class="${selected.has(idx)?'selected-row':''}">
       <td><input type="checkbox" ${chk} onchange="toggleRow(${idx},this)"/></td>
       <td>${i+1}</td>
       <td><b>${c.id}</b></td>
       <td>${c.date}</td>
+      <td><span class="src-tag ${sourceClass}">${c.source}</span></td>
       <td>${c.name}</td>
       <td>${c.mobile||'—'}</td>
       <td class="amount">${fmtR(c.total)}</td>
@@ -415,6 +393,7 @@ function renderList(){
         <button class="btn-pdf-single" onclick="downloadSinglePDF(${idx})">⬇ PDF</button>
       </td>
     </tr>`;
+
   });
   document.getElementById('countBadge').textContent=`Showing ${filtered.length} of ${customers.length} customers`;
 }
@@ -422,28 +401,25 @@ function renderList(){
 function filterList(){
   const q=document.getElementById('searchInput').value.toLowerCase();
   const amt=document.getElementById('amtFilter').value;
+  const company=document.getElementById('companyFilter').value;
   filtered=customers.filter(c=>{
-    const matchQ=!q||c.name.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)||c.mobile.includes(q)||c.cid.toLowerCase().includes(q);
+    const matchQ=!q||c.name.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)||c.mobile.includes(q);
     const matchAmt=!amt||c.total==amt;
-    return matchQ&&matchAmt;
+    const matchCompany=!company||c.source==company;
+    return matchQ&&matchAmt&&matchCompany;
   });
   renderList();
 }
-
 // ── PDF GENERATION ──
 function buildInvoiceHTML(c){
   const t=calcTax(c.total);
-  const addrLines=c.addr?c.addr.split('\n').join('<br>'):'—';
-  const credited=c.total-c.due;
-  const words=amountWords(c.total);
-  const balDue=c.due>0?fmtR(c.due):'₹0.00';
-  // Use absolute path for seal in PDF render
-  const sealSrc='data:image/jpeg;base64,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';
+  const sealSrc='data:image/jpeg;base64,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';
+  const comp = getCompanyInfo(c.source);
   return `<div style="font-family:Arial,sans-serif;background:#fff;width:860px;border:1px solid #ccc;color:#000;">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px 14px;border-bottom:1px solid #ccc;">
   <div>
-    <p style="font-size:14px;font-weight:bold;margin-bottom:2px;">ATVIAN R-SOLAR ENERGY PRIVATE LIMITED</p>
-    <p style="font-size:12px;line-height:1.7;">Anjad Naka<br>Barwani Madhya Pradesh 451551 India<br>GSTIN 23ABBCA7719B1Z5&nbsp;&nbsp;9407217000<br>support@myrsolar.com</p>
+    <p style="font-size:14px;font-weight:bold;margin-bottom:2px;">${comp.name}</p>
+    <p style="font-size:12px;line-height:1.7;">${comp.addr}<br>GSTIN ${comp.gst}${comp.phone?'&nbsp;&nbsp;'+comp.phone:''}<br>${comp.email}</p>
   </div>
   <div style="font-size:34px;font-weight:bold;">TAX INVOICE</div>
 </div>
@@ -626,6 +602,7 @@ function showInvoice(idx){
   currentIdx=idx;
   const c=customers[idx];
   const t=calcTax(c.total);
+  const comp=getCompanyInfo(c.source);
   const addrLines=c.addr?c.addr.split('\n').join('<br>'):'—';
   const balDue=c.due>0?fmtR(c.due):'₹0.00';
   const credited=c.total-c.due;
@@ -635,12 +612,12 @@ function showInvoice(idx){
   document.getElementById('invoicePage').innerHTML=`
 <div class="top-row">
   <div class="company-block">
-    <p class="cname">ATVIAN R-SOLAR ENERGY PRIVATE LIMITED</p>
-    <p>Anjad Naka</p>
-    <p>Barwani Madhya Pradesh 451551 India</p>
-    <p>GSTIN 23ABBCA7719B1Z5&nbsp;&nbsp;9407217000</p>
-    <p>support@myrsolar.com</p>
+    <p class="cname">${comp.name}</p>
+    <p>${comp.addr.split('<br>').join('</p><p>')}</p>
+    <p>GSTIN ${comp.gst}${comp.phone?'&nbsp;&nbsp;'+comp.phone:''}</p>
+    <p>${comp.email}</p>
   </div>
+
   <div class="tax-label">TAX INVOICE</div>
 </div>
 
@@ -743,7 +720,8 @@ function showList(){
   document.getElementById('listView').style.display='block';
 }
 
-renderList();
+fetchSheetData();
+
 </script>
 </body>
 </html>
